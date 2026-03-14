@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScreenSort - Search Text Inside Screenshots</title>
+  <meta name="description" content="ScreenSort is the AI-powered search engine for your screenshots. Find any text inside any image in 0.1 seconds. 100% on-device, completely private.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg: #07070d;
+      --surface: #0f0f18;
+      --surface2: #14141f;
+      --border: #1a1a2e;
+      --accent: #6ee7b7;
+      --accent2: #38bdf8;
+      --accent-dim: rgba(110,231,183,0.08);
+      --text: #f0f4f8;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* Grid bg */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(110,231,183,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(110,231,183,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* NAV */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(7,7,13,0.8);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.05rem;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #07070d !important;
+      font-weight: 600 !important;
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      transition: opacity 0.2s !important;
+    }
+
+    .nav-cta:hover { opacity: 0.85; color: #07070d !important; }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 6rem;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(110,231,183,0.07) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(110,231,183,0.2);
+      padding: 0.3rem 0.9rem;
+      border-radius: 100px;
+      margin-bottom: 2rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      max-width: 540px;
+      font-size: 1.15rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: #07070d;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.85rem 2rem;
+      border-radius: 10px;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-secondary {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color 0.2s;
+    }
+
+    .btn-secondary:hover { color: var(--text); }
+
+    .hero-meta {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+
+    /* SEARCH DEMO */
+    .demo-window {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+      margin: 4rem auto 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(110,231,183,0.05);
+      animation: fadeUp 0.6s 0.35s ease both;
+    }
+
+    .window-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-icon { color: var(--text-muted); font-size: 1rem; }
+
+    .search-query {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--accent);
+    }
+
+    .search-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1rem;
+      background: var(--accent);
+      animation: blink 1s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .results {
+      padding: 0.75rem;
+    }
+
+    .result-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      align-items: center;
+      margin-bottom: 0.25rem;
+      transition: background 0.2s;
+    }
+
+    .result-item:hover { background: rgba(255,255,255,0.03); }
+
+    .result-thumb {
+      width: 52px;
+      height: 40px;
+      border-radius: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .result-info { flex: 1; min-width: 0; }
+
+    .result-match {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-match mark {
+      background: rgba(110,231,183,0.2);
+      color: var(--accent);
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
+    .result-date {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      margin-top: 0.2rem;
+    }
+    /* SECTIONS */
+    section {
+      position: relative;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      max-width: 520px;
+      line-height: 1.7;
+    }
+
+    /* FEATURES */
+    #features {
+      padding: 8rem 2rem;
+    }
+
+    .features-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .features-header .section-desc {
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.75rem;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(110,231,183,0.25);
+      transform: translateY(-3px);
+    }
+
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(110,231,183,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* HOW IT WORKS */
+    #how {
+      padding: 6rem 2rem;
+      background: linear-gradient(180deg, transparent, rgba(110,231,183,0.02), transparent);
+    }
+
+    .how-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      align-items: center;
+    }
+
+    .how-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .how-step {
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .how-num {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid rgba(110,231,183,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-top: 0.1rem;
+    }
+
+    .how-step h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .how-step p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .how-visual {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+    }
+
+    .code-line {
+      display: flex;
+      gap: 1rem;
+      padding: 0.3rem 0;
+      color: var(--text-muted);
+    }
+
+    .code-ln { color: var(--border); width: 1.5rem; text-align: right; user-select: none; }
+    .code-kw { color: #c792ea; }
+    .code-str { color: #c3e88d; }
+    .code-fn { color: #82aaff; }
+    .code-cm { color: #546e7a; font-style: italic; }
+    .code-hl { background: rgba(110,231,183,0.06); border-left: 2px solid var(--accent); margin: 0 -2rem; padding: 0.3rem 2rem 0.3rem calc(2rem - 2px); color: var(--text); }
+
+    /* PRICING */
+    #pricing {
+      padding: 8rem 2rem;
+    }
+
+    .pricing-header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+
+    .pricing-header .section-desc { margin: 0 auto; }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: rgba(110,231,183,0.35);
+      background: linear-gradient(160deg, rgba(110,231,183,0.06), var(--surface));
+    }
+
+    .plan-badge {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #07070d;
+      background: var(--accent);
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      margin-bottom: 1.25rem;
+    }
+
+    .plan-name {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .plan-price {
+      font-size: 2.4rem;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin: 1rem 0 0.25rem;
+    }
+
+    .plan-period {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .plan-features {
+      list-style: none;
+      margin-bottom: 1.75rem;
+    }
+
+    .plan-features li {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      padding: 0.35rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .plan-features li::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .plan-btn {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .plan-btn-outline {
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+
+    .plan-btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .plan-btn-filled {
+      background: var(--accent);
+      color: #07070d;
+    }
+
+    .plan-btn-filled:hover { opacity: 0.85; }
+
+    /* PRIVACY STRIP */
+    .privacy-strip {
+      padding: 4rem 2rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .privacy-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .privacy-item h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+
+    .privacy-item p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .privacy-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* DOWNLOAD CTA */
+    #download {
+      padding: 8rem 2rem;
+      text-align: center;
+    }
+
+    .cta-box {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .cta-box h2 {
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    .cta-box p {
+      color: var(--text-dim);
+      font-size: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .app-store-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--text);
+      color: var(--bg);
+      text-decoration: none;
+      padding: 0.9rem 2rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .app-store-btn:hover { opacity: 0.88; transform: translateY(-2px); }
+
+    .app-store-btn svg { width: 22px; height: 22px; }
+
+    .cta-note {
+      margin-top: 1.25rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* FOOTER */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-brand .logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.95rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .footer-brand p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .footer-links a {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    @media (max-width: 768px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .privacy-inner { grid-template-columns: 1fr 1fr; }
+      .how-inner { grid-template-columns: 1fr; }
+      .how-visual { display: none; }
+      .footer-inner { flex-direction: column; text-align: center; }
+      .nav-links .btn-secondary-nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="logo">ScreenSort</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="support.html">Support</a>
+      <a href="#download" class="nav-cta">Download Free</a>
+    </div>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="hero-badge">Now Available on the App Store</div>
+  <h1>The <em>search engine</em><br>for your screenshots</h1>
+  <p class="hero-desc">Stop scrolling through hundreds of screenshots. Type any keyword and ScreenSort finds it in 0.1 seconds — reading the actual text inside your images.</p>
+  <div class="hero-actions">
+    <a href="#download" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      Download for iOS
+    </a>
+    <a href="#features" class="btn-secondary">See how it works &darr;</a>
+  </div>
+  <p class="hero-meta">Free &middot; 20 searches/day &middot; iOS 16+ &middot; 100% on-device</p>
+
+  <div class="demo-window">
+    <div class="window-bar">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">&#128269;</span>
+      <span class="search-query">API key<span class="search-cursor"></span></span>
+    </div>
+    <div class="results">
+      <div class="result-item">
+        <div class="result-thumb">CODE</div>
+        <div class="result-info">
+          <div class="result-match">sk-proj-<mark>API key</mark>-xK2mNpQ...</div>
+          <div class="result-date">GitHub &middot; 3 days ago</div>
+        </div>
+      </div>
+      <div class="result-item">
+        <div class="result-thumb">DOCS</div>
+        <div class="result-info">
+          <div class="result-match">Your <mark>API key</mark>: Bearer eyJhb...</div>
+          <div class="result-date">Notion &middot; 1 week ago</div>
+        </div>
+      </div>
+      <div class="result-item">
+        <div class="result-thumb">MSG</div>
+        <div class="result-info">
+          <div class="result-match">Here's the <mark>API key</mark> for staging env</div>
+          <div class="result-date">Slack &middot; 2 weeks ago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="features-header">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">Everything you need to find any screenshot</h2>
+    <p class="section-desc">Built on Apple's on-device AI. Fast, private, and works without internet.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#128269;</div>
+      <h3>AI Text Search</h3>
+      <p>Search any text content inside your screenshots. OCR reads every word — code, messages, receipts, anything with text.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9889;</div>
+      <h3>0.1 Second Results</h3>
+      <p>Full-text search powered by SQLite FTS5. Search across thousands of screenshots in milliseconds.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128274;</div>
+      <h3>100% On-Device</h3>
+      <p>All AI processing happens on your iPhone. Your screenshots never leave your device. No cloud, no tracking.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128193;</div>
+      <h3>Smart Categories</h3>
+      <p>AI automatically sorts screenshots into Code, Social Media, Shopping, Documents, and more. No manual tagging.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#127760;</div>
+      <h3>Multi-Language OCR</h3>
+      <p>Recognizes text in 20+ languages including English, Chinese, Japanese, Korean, Spanish, Arabic, and more.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9749;</div>
+      <h3>Works Offline</h3>
+      <p>No internet connection required. ScreenSort works on a plane, underground — anywhere, anytime.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="how-inner">
+    <div>
+      <div class="section-label">How it works</div>
+      <h2 class="section-title">Four steps to find anything</h2>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="how-num">1</div>
+          <div>
+            <h3>Grant Photo Access</h3>
+            <p>Allow ScreenSort to read your photo library. Your photos never leave your device.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">2</div>
+          <div>
+            <h3>AI Indexes Your Screenshots</h3>
+            <p>OCR reads every screenshot in the background. For 1,000 screenshots, this takes about 5 minutes — once.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">3</div>
+          <div>
+            <h3>Type Any Keyword</h3>
+            <p>Search for any word, phrase, or partial text. Results appear instantly as you type.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">4</div>
+          <div>
+            <h3>Find It Instantly</h3>
+            <p>Tap any result to view the full screenshot. Matching text is highlighted so you see exactly where it appears.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="how-visual">
+      <div class="code-line"><span class="code-ln">1</span><span class="code-cm">// ScreenSort search pipeline</span></div>
+      <div class="code-line"><span class="code-ln">2</span></div>
+      <div class="code-line"><span class="code-ln">3</span><span class="code-kw">func </span><span class="code-fn">search</span>(_ query: String) {</div>
+      <div class="code-line code-hl"><span class="code-ln">4</span>&nbsp;&nbsp;<span class="code-cm">// OCR already indexed</span></div>
+      <div class="code-line code-hl"><span class="code-ln">5</span>&nbsp;&nbsp;<span class="code-kw">let </span>results = db.<span class="code-fn">fts5Search</span>(query)</div>
+      <div class="code-line"><span class="code-ln">6</span>&nbsp;&nbsp;<span class="code-cm">// returns in &lt;100ms</span></div>
+      <div class="code-line"><span class="code-ln">7</span>}</div>
+      <div class="code-line"><span class="code-ln">8</span></div>
+      <div class="code-line"><span class="code-ln">9</span><span class="code-cm">// Zero network requests</span></div>
+      <div class="code-line"><span class="code-ln">10</span><span class="code-cm">// Zero data collection</span></div>
+      <div class="code-line"><span class="code-ln">11</span><span class="code-cm">// 100% on-device</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="privacy-strip">
+  <div class="privacy-inner">
+    <div class="privacy-item">
+      <div class="privacy-icon">&#128274;</div>
+      <h3>No Data Collection</h3>
+      <p>We collect zero personal data. No analytics SDKs, no tracking.</p>
+    </div>
+    <div class="privacy-item">
+      <div class="privacy-icon">&#128241;</div>
+      <h3>On-Device Only</h3>
+      <p>All AI runs locally via Apple Vision Framework and Core ML.</p>
+    </div>
+    <div class="privacy-item">
+      <div class="privacy-icon">&#127760;</div>
+      <h3>Offline First</h3>
+      <p>No internet required. Everything stored in your app's local sandbox.</p>
+    </div>
+    <div class="privacy-item">
+      <div class="privacy-icon">&#128373;</div>
+      <h3>No Account Needed</h3>
+      <p>Download and use immediately. No sign-up, no email, no password.</p>
+    </div>
+  </div>
+</div>
+
+<section id="pricing">
+  <div class="pricing-header">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Simple, honest pricing</h2>
+    <p class="section-desc">Start free. Upgrade when you need unlimited searches.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">$0</div>
+      <div class="plan-period">forever free</div>
+      <ul class="plan-features">
+        <li>20 searches per day</li>
+        <li>AI auto-categorization</li>
+        <li>Multi-language OCR</li>
+        <li>Offline support</li>
+      </ul>
+      <a href="#download" class="plan-btn plan-btn-outline">Download Free</a>
+    </div>
+    <div class="pricing-card featured">
+      <div class="plan-badge">Most Popular</div>
+      <div class="plan-name">Annual</div>
+      <div class="plan-price">$19.99</div>
+      <div class="plan-period">per year &mdash; save 44%</div>
+      <ul class="plan-features">
+        <li>Unlimited searches</li>
+        <li>Priority processing</li>
+        <li>Advanced filters</li>
+        <li>All future features</li>
+      </ul>
+      <a href="#download" class="plan-btn plan-btn-filled">Get Annual</a>
+    </div>
+    <div class="pricing-card">
+      <div class="plan-name">Lifetime</div>
+      <div class="plan-price">$49.99</div>
+      <div class="plan-period">one-time payment</div>
+      <ul class="plan-features">
+        <li>Unlimited searches forever</li>
+        <li>All premium features</li>
+        <li>All future updates</li>
+        <li>No recurring charges</li>
+      </ul>
+      <a href="#download" class="plan-btn plan-btn-outline">Buy Lifetime</a>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="cta-box">
+    <div class="section-label">Download</div>
+    <h2>Start finding screenshots instantly</h2>
+    <p>Free to download. No account required. Works completely offline.</p>
+    <a href="https://apps.apple.com/app/id6759509804" class="app-store-btn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      Download on the App Store
+    </a>
+    <p class="cta-note">iOS 16.0+ &middot; iPhone &middot; Free to start</p>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a href="index.html" class="logo">ScreenSort</a>
+      <p>&copy; 2025 ScreenSort. All rights reserved.</p>
+    </div>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Use</a>
+      <a href="support.html">Support</a>
+      <a href="mailto:shaozhen008@gmail.com">Contact</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
